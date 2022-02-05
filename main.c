@@ -22,6 +22,7 @@ struct Group {
     struct Group *prev;
 };
 
+//Main === collection
 struct Main {
     int date;
     int place;
@@ -33,6 +34,7 @@ struct Main {
 
 int c1(FILE *fp, struct Place ** addr_p_active_dest);
 int c2(FILE *fp, struct Date ** addr_date_head);
+int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
 
 void free_dates(struct Date *date_head){
     struct Date * temp = date_head;
@@ -40,6 +42,24 @@ void free_dates(struct Date *date_head){
         temp = date_head->next;
         free(date_head);
         date_head = temp;
+    }
+};
+
+void free_groups(struct Group *groups_list){
+    struct Group * temp = groups_list;
+    while(groups_list!=NULL){
+        temp = groups_list->next;
+        free(groups_list);
+        groups_list = temp;
+    }
+};
+
+void free_mains(struct Main *main_head){
+    struct Main * temp = main_head;
+    while(main_head!=NULL){
+        temp = main_head->next;
+        free_groups(main_head->groups);
+        main_head = temp;
     }
 };
 
@@ -52,19 +72,35 @@ void print_dates(struct Date *date_head){
     }
     printf("\n");
 };
+void print_groups(struct Group *groups_list){
+    struct Group * temp = groups_list;
+    while(temp!=NULL){
+        printf("Name: %s\tCount: %d\n",groups_list->grp_lead, groups_list->grp_count);
+        temp = temp->next;
+    }
+    printf("\n");
+};
+void print_main(struct Main * main_head){
+    struct Main *temp = main_head;
+    while(temp!=NULL){
+        printf("Dest: %d\tDate: %d\tTotal: %d\n", temp->place, temp->date, temp->t_tourists);
+        print_groups(temp->groups);
+        temp=temp->next;
+    }
+};
 
 int main(){
     int *Dar=0, *Leh=0, *Ooty=0;
     FILE *fp;
-    /*
+
     fp = fopen("tour.txt","w");
     if (fp==NULL){
         printf("Unable to create tour.txt\n");
         return 0;
     }
-    fprintf(fp,"12 C1 TS2 C2 14 C2 30 C2 22 C9");
+    fprintf(fp,"12 C1 TS2 C2 14 C3 KK 10 C3 BB 2 C9");
     fclose(fp);
-    */
+
     fp = fopen("tour.txt", "r");
     if (fp==NULL){
         printf("Unable to open tour.txt\n");
@@ -78,6 +114,7 @@ int main(){
     }
     struct Place *p_active_dest=NULL;
     struct Date *date_head;
+    struct Main *main_head;
     int running = 1;
     char c;
     //you wanna put this in queue
@@ -98,7 +135,10 @@ int main(){
                 case '3':
                 c = fgetc(fp);
                 if ('A'==c || 'a'==c) {printf("C3A detected\n");break;}
-                printf("C3 detected\n");break;
+                c3(fp, N, &main_head, p_active_dest, date_head);
+                printf("C3 was detected\n");
+                print_main(main_head);
+                break;
                 case '5':printf("C5 detected\n");break;
                 case '8':printf("C8 detected\n");break;
                 case '9':printf("C9 detected\n");running=0;break;
@@ -108,6 +148,7 @@ int main(){
     fclose(fp);
     free(p_active_dest);
     free_dates(date_head);
+    free_mains(main_head);
     return 0;
 }
 /*
@@ -192,7 +233,7 @@ int c2(FILE *fp, struct Date ** addr_date_head){
         prevDate = date_ptr->date;
     }
     //idk why anxiety but what if prevDate create scope problem
-    
+
     if(prevDate>date) return 0;
     //i know there was no need for this but just to make this complete
     //y there was no need? see question in README.md
@@ -215,6 +256,17 @@ int c2(FILE *fp, struct Date ** addr_date_head){
     return 1;
 }
 
+struct Main * make_main(int date, int dest){
+    struct Main * newMain = (struct Main *)malloc(sizeof(struct Main));
+    newMain->date = date;
+    newMain->place = dest;
+    newMain->t_tourists = 0;
+    newMain->groups = NULL;
+    newMain->prev = NULL;
+    newMain->next = NULL;
+    return newMain;
+}
+
 //this triggers bi=oth making of Main and Group
 //N is total num of tourists allowed on the vehicle
 int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head){
@@ -230,7 +282,7 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
     int tourists;
     fscanf(fp,"%d",&tourists);//to do: show err
     if (tourists<1 || tourists>N) return 0;
-    
+
     int active_date = 0;
     struct Date * p_temp_date = date_head;
     if (date_head==NULL) return 0;
@@ -238,11 +290,11 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
         p_temp_date = p_temp_date->next;
     }
     active_date = p_temp_date->date;
-    
-    if (*p_active_dest == NULL) return 0;
-    int active_dest = (*p_active_dest)->place_num;
 
-    struct Main *this_main;
+    if (p_active_dest == NULL) return 0;
+    int active_dest = p_active_dest->place_num;
+
+    struct Main * newMain=NULL;
 
     //firstly we want to go to that groups column or collection or Main
     //where active dest and date matches then see if tourists spots available
@@ -250,46 +302,59 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
     //add groups
 
     //assumed that *addr_main_head!=NULL
-    struct Main * temp = *addr_main_head;
+    struct Main * temp_main = NULL;
+    temp_main = *addr_main_head;
     //make sure that temp is not null cuz if null then next component wont work
-    while(temp->date < active_date || temp->next!=NULL){
-        temp = temp->next;
-    }
-    //make new node either way at end or here i.e. at temp or temp->next if temp->date!=active_date
-    if (temp->date != active_date){
-        //here order is imp
-        if (temp->date > active_date);//make new node at temp->prev =>temp->prev->next=newNode
-        else if (temp->next==NULL);//make new node at temp->next =>temp->next=newNode
-        else return 0;//well i dont think its possible
-    } else {
-        while((temp->place < active_dest && temp->date == active_date) || temp->next!=NULL){
-            temp = temp->next;
+    if(temp_main!=NULL){
+        while(temp_main->date < active_date || temp_main->next!=NULL){
+            temp_main = temp_main->next;
         }
-        if(temp->place > active_dest || temp->date > active_date);//temp->prev->next=newNode;
-        else if(temp->next == NULL);//temp->next = newNode
-        else if (temp->place == active_dest) this_main = temp;
+        //make new node either way at end or here i.e. at temp or temp->next if temp->date!=active_date
+        if (temp_main->date != active_date){
+            //here order of if-else is imp
+            newMain = make_main(active_date, active_dest);
+            if (temp_main->date > active_date){
+                //make new node at temp->prev =>temp->prev->next=newNode
+                temp_main->prev->next = newMain;
+                newMain->prev = temp_main->prev->next;
+                newMain->next = temp_main;
+                temp_main->prev = newMain;
+            }
+            else if (temp_main->next==NULL){
+                //make new node at temp->next =>temp->next=newNode
+                temp_main->next = newMain;
+                newMain->prev = temp_main;
+            }
+            else return 0;//well i dont think its possible
+        } else {
+            while((temp_main->place < active_dest && temp_main->date == active_date) || temp_main->next!=NULL){
+                temp_main = temp_main->next;
+            }
+            if(temp_main->place > active_dest || temp_main->date > active_date){
+                newMain = make_main(active_date, active_dest);
+                temp_main->prev->next = newMain;
+                newMain->prev = temp_main->prev->next;
+                newMain->next = temp_main;
+                temp_main->prev = newMain;
+            }
+            else if (temp_main->place == active_dest) newMain = temp_main;//no need to link cuz temp is already linked
+            else if(temp_main->next == NULL){
+                newMain = make_main(active_date, active_dest);
+                temp_main->next = newMain;
+                newMain->prev = temp_main;
+            }
+        }
+    } else {
+        newMain = make_main(active_date, active_dest);
+        *addr_main_head = newMain;
     }
+    //
+    //
+    //maybe u can make this better:
+    //
+    if (newMain->t_tourists + tourists > N) return 0;
+    newMain->t_tourists+=tourists;
 
-    //we can use if-else or a var like success
-    //well these are gonna take a lot to free, i means for groups
-    if (*addr_main_head==NULL){
-        *addr_main_head = (struct Main *)malloc(sizeof(struct Main));
-        (*addr_main_head)->date = active_date;
-        (*addr_main_head)->place = active_dest;
-        (*addr_main_head)->t_tourists=0;
-        (*addr_main_head)->groups=NULL;
-        (*addr_main_head)->prev=NULL;
-        (*addr_main_head)->next=NULL; 
-    }
-    //
-    //
-    //maybe u can make this better
-    int tourists=N;
-    fscanf(fp,"%d",tourists);
-    //
-    if (this_main->t_tourists + tourists > N) return 0;
-    this_main->t_tourists+=tourists;
-    
     struct Group *newGroup;
     newGroup = (struct Group *)malloc(sizeof(struct Group));
     strcpy(newGroup->grp_lead,name);
@@ -303,13 +368,13 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
     //in get Date func
     //
     //
-    struct Group * temp_grp = this_main->groups;
+    struct Group * temp_grp = newMain->groups;
     //
     //now we need to add newGroup to groups_list
     //also make sure that this list isnt empty
     //and add to the end of the list
     if (temp_grp == NULL){
-        this_main->groups = newGroup;
+        newMain->groups = newGroup;
     } else {
         while(temp_grp->next!=NULL){
             temp_grp=temp_grp->next;
@@ -319,4 +384,5 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
         newGroup->prev = temp_grp;
         //no need to take care of preceeding nodes as we inserted at end
     }
+    return 1;
 }
