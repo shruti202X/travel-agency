@@ -18,13 +18,15 @@ struct Group {
     int destination;
     int type;//0 for normal and 1 for premium
     struct Group *next;
+    //Do we need prev?
+    struct Group *prev;
 };
 
 struct Main {
-    struct Date * p_date;
-    struct Place *p_place;
+    int date;
+    int place;
     int t_tourists;//total_tourists
-    struct Group *grp;
+    struct Group *groups;
     struct Main *prev;
     struct Main *next;
 };
@@ -41,6 +43,7 @@ void free_dates(struct Date *date_head){
     }
 };
 
+//to del when u finally deploy:
 void print_dates(struct Date *date_head){
     struct Date * temp = date_head;
     while(temp!=NULL){
@@ -141,7 +144,7 @@ int c1(FILE *fp, struct Place ** addr_p_active_dest){
 }
 
 int c2(FILE *fp, struct Date ** addr_date_head){
-    int success = 1; //func returns 1 if nothing goes wrong
+    //to improve: main prob i see: if c of another code is just after date then problem happens
     int date = 0;
     char c;
     // for space after code C2
@@ -210,4 +213,110 @@ int c2(FILE *fp, struct Date ** addr_date_head){
         date_ptr->next = newDate;
     }
     return 1;
+}
+
+//this triggers bi=oth making of Main and Group
+//N is total num of tourists allowed on the vehicle
+int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head){
+    char name[5];
+    char c;
+    do c=fgetc(fp); while (c==' ' || c=='\n');
+    name[0] = c;
+    c=fgetc(fp);
+    name[1]=c;
+    name[2]='\0';
+    //to do: err if initials already present
+
+    int tourists;
+    fscanf(fp,"%d",&tourists);//to do: show err
+    if (tourists<1 || tourists>N) return 0;
+    
+    int active_date = 0;
+    struct Date * p_temp_date = date_head;
+    if (date_head==NULL) return 0;
+    while(p_temp_date->next!=NULL){
+        p_temp_date = p_temp_date->next;
+    }
+    active_date = p_temp_date->date;
+    
+    if (*p_active_dest == NULL) return 0;
+    int active_dest = (*p_active_dest)->place_num;
+
+    struct Main *this_main;
+
+    //firstly we want to go to that groups column or collection or Main
+    //where active dest and date matches then see if tourists spots available
+    //if no such Main then make one insert it into list of mains at appropriate pos
+    //add groups
+
+    //assumed that *addr_main_head!=NULL
+    struct Main * temp = *addr_main_head;
+    //make sure that temp is not null cuz if null then next component wont work
+    while(temp->date < active_date || temp->next!=NULL){
+        temp = temp->next;
+    }
+    //make new node either way at end or here i.e. at temp or temp->next if temp->date!=active_date
+    if (temp->date != active_date){
+        //here order is imp
+        if (temp->date > active_date);//make new node at temp->prev =>temp->prev->next=newNode
+        else if (temp->next==NULL);//make new node at temp->next =>temp->next=newNode
+        else return 0;//well i dont think its possible
+    } else {
+        while((temp->place < active_dest && temp->date == active_date) || temp->next!=NULL){
+            temp = temp->next;
+        }
+        if(temp->place > active_dest || temp->date > active_date);//temp->prev->next=newNode;
+        else if(temp->next == NULL);//temp->next = newNode
+        else if (temp->place == active_dest) this_main = temp;
+    }
+
+    //we can use if-else or a var like success
+    //well these are gonna take a lot to free, i means for groups
+    if (*addr_main_head==NULL){
+        *addr_main_head = (struct Main *)malloc(sizeof(struct Main));
+        (*addr_main_head)->date = active_date;
+        (*addr_main_head)->place = active_dest;
+        (*addr_main_head)->t_tourists=0;
+        (*addr_main_head)->groups=NULL;
+        (*addr_main_head)->prev=NULL;
+        (*addr_main_head)->next=NULL; 
+    }
+    //
+    //
+    //maybe u can make this better
+    int tourists=N;
+    fscanf(fp,"%d",tourists);
+    //
+    if (this_main->t_tourists + tourists > N) return 0;
+    this_main->t_tourists+=tourists;
+    
+    struct Group *newGroup;
+    newGroup = (struct Group *)malloc(sizeof(struct Group));
+    strcpy(newGroup->grp_lead,name);
+    newGroup->grp_count=tourists;
+    newGroup->date = active_date;
+    newGroup->destination = active_dest;
+    newGroup->type = 0;
+    newGroup->next = NULL;
+    //do we need prev
+    newGroup->prev=NULL;
+    //in get Date func
+    //
+    //
+    struct Group * temp_grp = this_main->groups;
+    //
+    //now we need to add newGroup to groups_list
+    //also make sure that this list isnt empty
+    //and add to the end of the list
+    if (temp_grp == NULL){
+        this_main->groups = newGroup;
+    } else {
+        while(temp_grp->next!=NULL){
+            temp_grp=temp_grp->next;
+        }
+        temp_grp->next = newGroup;
+        //do we need prev
+        newGroup->prev = temp_grp;
+        //no need to take care of preceeding nodes as we inserted at end
+    }
 }
