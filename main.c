@@ -75,7 +75,7 @@ void print_dates(struct Date *date_head){
 void print_groups(struct Group *groups_list){
     struct Group * temp = groups_list;
     while(temp!=NULL){
-        printf("Name: %s\tCount: %d\n",groups_list->grp_lead, groups_list->grp_count);
+        printf("Name: %s\tCount: %d\n",temp->grp_lead, temp->grp_count);
         temp = temp->next;
     }
     printf("\n");
@@ -90,7 +90,6 @@ void print_main(struct Main * main_head){
 };
 
 int main(){
-    int *Dar=0, *Leh=0, *Ooty=0;
     FILE *fp;
 
     fp = fopen("tour.txt","w");
@@ -113,8 +112,9 @@ int main(){
         return 0;
     }
     struct Place *p_active_dest=NULL;
-    struct Date *date_head;
-    struct Main *main_head;
+    struct Date *date_head = NULL;
+    //all problem was cuz i diddnt initialize the struct to NULL
+    struct Main *main_head = NULL;
     int running = 1;
     char c;
     //you wanna put this in queue
