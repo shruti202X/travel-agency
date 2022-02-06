@@ -81,6 +81,7 @@ void print_groups(struct Group *groups_list){
 void print_destination(int dest, struct Main *main_head){
     struct Main *temp_main = main_head;
     while(temp_main!=NULL){
+        //printf("temp_main place here is %d\n",temp_main->place);
         if (temp_main->place == dest){
             //print this main
             printf("May %d: ",temp_main->date);
@@ -92,6 +93,7 @@ void print_destination(int dest, struct Main *main_head){
         }
         temp_main = temp_main->next;
     }
+    printf("-----------------------------------------\n");
 };
 
 //to del when u finally deploy/prsent:
@@ -121,7 +123,7 @@ int main(){
         printf("Unable to create tour.txt\n");
         return 0;
     }
-    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 2 C3 BB 4 C3a CC 4 C8 TS2 C5 AA C8 TS2 C2 15 C3 DD 4 C8 C9");
+    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 2 C3 BB 4 C3a CC 4 C5 AA C2 15 C3 DD 4 C8 TS2 C9");
     fclose(fp);
 
     fp = fopen("tour.txt", "r");
@@ -173,6 +175,7 @@ int main(){
                 //print_main(main_head);
                 break;
                 case '8':
+                //char ts2[5]; y did this gave err
                 //printf("C8 detected\n");
                 c8(fp, main_head);
                 break;
@@ -181,6 +184,7 @@ int main(){
                 running=0;break;
             };
         }
+        //print_main(main_head);
     }
     fclose(fp);
     free(p_active_dest);
@@ -581,6 +585,7 @@ int c5(FILE *fp, struct Main * main_head){
     //but for now lets keep it like this;
     if (temp_grp!=NULL && temp_main!=NULL){//or if(finding==0); acc to me, finding==0 or temp_grp!=NULL or temp_main!=NULL
         struct Group *new_temp_grp = temp_main->groups;
+        temp_main->t_tourists -= temp_grp->grp_count;
         if(new_temp_grp == temp_grp){
             temp_main->groups = temp_grp->next;
             if(temp_grp->next!=NULL) temp_grp->next->prev=NULL;
