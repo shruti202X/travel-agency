@@ -36,6 +36,7 @@ int c1(FILE *fp, struct Place ** addr_p_active_dest);
 int c2(FILE *fp, struct Date ** addr_date_head);
 int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
 int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
+int c5(FILE *fp, struct Main *main_head);
 
 void free_dates(struct Date *date_head){
     struct Date * temp = date_head;
@@ -98,7 +99,7 @@ int main(){
         printf("Unable to create tour.txt\n");
         return 0;
     }
-    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 8 C3 BB 2 C3a CC 4 C3 DD 2  C3a EE 6 C9");
+    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 2 C3 BB 4 C3a CC 4 C5 AA C5 AA C5 CC C9");
     fclose(fp);
 
     fp = fopen("tour.txt", "r");
@@ -145,7 +146,10 @@ int main(){
                 printf("C3 was detected\n");
                 print_main(main_head);
                 break;
-                case '5':printf("C5 detected\n");break;
+                case '5': c5(fp, main_head);
+                printf("C5 was detected\n");
+                print_main(main_head);
+                break;
                 case '8':printf("C8 detected\n");break;
                 case '9':printf("C9 detected\n");running=0;break;
             };
@@ -517,6 +521,52 @@ int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_
         newMain->groups = newGroup;
         temp_grp->prev = newGroup;
         newGroup->next = temp_grp;
+    }
+    return 1;
+}
+
+int c5(FILE *fp, struct Main * main_head){
+    //to improove: if initals one time were in capslock but anther in lower case
+    char name[5];
+    fscanf(fp, "%s", name);
+    //
+    //now find that main_head;
+    //also check for err if no such main exists;
+    struct Main *temp_main = main_head;
+    struct Group *temp_grp = temp_main->groups;
+    int finding=1;
+    //first it showed me err cuz i used || instead of &&
+    while(temp_main!=NULL && finding==1){
+        temp_grp = temp_main->groups;
+        while(temp_grp!=NULL && finding==1){
+            if (strcmp(temp_grp->grp_lead,name)==0){
+                finding = 0;//cuz we found
+                break;
+            }
+            temp_grp=temp_grp->next;
+        }
+        if(finding==0) break;
+        temp_main=temp_main->next;
+    }
+    if (temp_grp==NULL); 
+    /*{
+        printf("no such name\n");
+        return 1;
+    }*/
+    //means no such name in our database;
+    //maybe we could return 0;
+    //but for now lets keep it like this;
+    if (temp_grp!=NULL && temp_main!=NULL){//or if(finding==0); acc to me, finding==0 or temp_grp!=NULL or temp_main!=NULL
+        struct Group *new_temp_grp = temp_main->groups;
+        if(new_temp_grp == temp_grp){
+            temp_main->groups = temp_grp->next;
+            if(temp_grp->next!=NULL) temp_grp->next->prev=NULL;
+            free(temp_grp);
+        } else {
+            temp_grp->prev->next = temp_grp->next;
+            temp_grp->next->prev = temp_grp->prev;
+            free(temp_grp);
+        }
     }
     return 1;
 }
