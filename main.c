@@ -343,7 +343,7 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
     temp_main = *addr_main_head;
     //make sure that temp is not null cuz if null then next component wont work
     if(temp_main!=NULL){
-        while(temp_main->date < active_date || temp_main->next!=NULL){
+        while(temp_main->date < active_date && temp_main->next!=NULL){
             temp_main = temp_main->next;
         }
         //make new node either way at end or here i.e. at temp or temp->next if temp->date!=active_date
@@ -364,7 +364,7 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
             }
             else return 0;//well i dont think its possible
         } else {
-            while((temp_main->place < active_dest && temp_main->date == active_date) || temp_main->next!=NULL){
+            while((temp_main->place < active_dest && temp_main->date == active_date) && temp_main->next!=NULL){
                 temp_main = temp_main->next;
             }
             if(temp_main->place > active_dest || temp_main->date > active_date){
@@ -462,7 +462,7 @@ int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_
     temp_main = *addr_main_head;
     //make sure that temp is not null cuz if null then next component wont work
     if(temp_main!=NULL){
-        while(temp_main->date < active_date || temp_main->next!=NULL){
+        while(temp_main->date < active_date && temp_main->next!=NULL){
             temp_main = temp_main->next;
         }
         //make new node either way at end or here i.e. at temp or temp->next if temp->date!=active_date
@@ -483,7 +483,7 @@ int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_
             }
             else return 0;//well i dont think its possible
         } else {
-            while((temp_main->place < active_dest && temp_main->date == active_date) || temp_main->next!=NULL){
+            while((temp_main->place < active_dest && temp_main->date == active_date) && temp_main->next!=NULL){
                 temp_main = temp_main->next;
             }
             if(temp_main->place > active_dest || temp_main->date > active_date){
