@@ -35,6 +35,7 @@ struct Main {
 int c1(FILE *fp, struct Place ** addr_p_active_dest);
 int c2(FILE *fp, struct Date ** addr_date_head);
 int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
+int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
 
 void free_dates(struct Date *date_head){
     struct Date * temp = date_head;
@@ -97,7 +98,7 @@ int main(){
         printf("Unable to create tour.txt\n");
         return 0;
     }
-    fprintf(fp,"12 C1 TS2 C2 14 C3 KK 10 C3 BB 2 C9");
+    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 8 C3 BB 2 C3a CC 4 C3 DD 2  C3a EE 6 C9");
     fclose(fp);
 
     fp = fopen("tour.txt", "r");
@@ -134,7 +135,12 @@ int main(){
                 break;
                 case '3':
                 c = fgetc(fp);
-                if ('A'==c || 'a'==c) {printf("C3A detected\n");break;}
+                if ('A'==c || 'a'==c) {
+                    c3a(fp, N, &main_head, p_active_dest, date_head);
+                    printf("C3A was detected\n");
+                    print_main(main_head);
+                    break;
+                }
                 c3(fp, N, &main_head, p_active_dest, date_head);
                 printf("C3 was detected\n");
                 print_main(main_head);
@@ -383,6 +389,134 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
         //do we need prev
         newGroup->prev = temp_grp;
         //no need to take care of preceeding nodes as we inserted at end
+    }
+    return 1;
+}
+
+//ignored the fact that if all the grps in the list are already premium =>type 1 and not 0
+int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head){
+    char name[5];
+    char c;
+    do c=fgetc(fp); while (c==' ' || c=='\n');
+    name[0] = c;
+    c=fgetc(fp);
+    name[1]=c;
+    name[2]='\0';
+    //to do: err if initials already present
+
+    int tourists;
+    fscanf(fp,"%d",&tourists);//to do: show err
+    if (tourists<1 || tourists>N) return 0;
+
+    int active_date = 0;
+    struct Date * p_temp_date = date_head;
+    if (date_head==NULL) return 0;
+    while(p_temp_date->next!=NULL){
+        p_temp_date = p_temp_date->next;
+    }
+    active_date = p_temp_date->date;
+
+    if (p_active_dest == NULL) return 0;
+    int active_dest = p_active_dest->place_num;
+
+    struct Main * newMain=NULL;
+
+    //firstly we want to go to that groups column or collection or Main
+    //where active dest and date matches then see if tourists spots available
+    //if no such Main then make one insert it into list of mains at appropriate pos
+    //add groups
+
+    //assumed that *addr_main_head!=NULL
+    struct Main * temp_main = NULL;
+    temp_main = *addr_main_head;
+    //make sure that temp is not null cuz if null then next component wont work
+    if(temp_main!=NULL){
+        while(temp_main->date < active_date || temp_main->next!=NULL){
+            temp_main = temp_main->next;
+        }
+        //make new node either way at end or here i.e. at temp or temp->next if temp->date!=active_date
+        if (temp_main->date != active_date){
+            //here order of if-else is imp
+            newMain = make_main(active_date, active_dest);
+            if (temp_main->date > active_date){
+                //make new node at temp->prev =>temp->prev->next=newNode
+                temp_main->prev->next = newMain;
+                newMain->prev = temp_main->prev->next;
+                newMain->next = temp_main;
+                temp_main->prev = newMain;
+            }
+            else if (temp_main->next==NULL){
+                //make new node at temp->next =>temp->next=newNode
+                temp_main->next = newMain;
+                newMain->prev = temp_main;
+            }
+            else return 0;//well i dont think its possible
+        } else {
+            while((temp_main->place < active_dest && temp_main->date == active_date) || temp_main->next!=NULL){
+                temp_main = temp_main->next;
+            }
+            if(temp_main->place > active_dest || temp_main->date > active_date){
+                newMain = make_main(active_date, active_dest);
+                temp_main->prev->next = newMain;
+                newMain->prev = temp_main->prev->next;
+                newMain->next = temp_main;
+                temp_main->prev = newMain;
+            }
+            else if (temp_main->place == active_dest) newMain = temp_main;//no need to link cuz temp is already linked
+            else if(temp_main->next == NULL){
+                newMain = make_main(active_date, active_dest);
+                temp_main->next = newMain;
+                newMain->prev = temp_main;
+            }
+        }
+    } else {
+        newMain = make_main(active_date, active_dest);
+        *addr_main_head = newMain;
+    }
+    //
+    struct Group * temp_grp = newMain->groups;
+    newMain->t_tourists += tourists;
+    //to improve: is it clean code/logic?
+    while(newMain->t_tourists > N){
+        temp_grp = newMain->groups;
+        if (temp_grp->next == NULL){
+            newMain->t_tourists -= temp_grp->grp_count;
+            // No need to: temp_grp->prev->next = NULL; === NULL = NULL;
+            free(temp_grp);
+            temp_grp=NULL;
+            newMain->groups = temp_grp;
+            //simply: newMain->groups = NULL;
+            //above line cuz we are changing head
+        } else {
+            while(temp_grp->next!=NULL){
+                temp_grp = temp_grp->next;
+            }
+            newMain->t_tourists -= temp_grp->grp_count;
+            temp_grp->prev->next = NULL;
+            temp_grp =temp_grp->prev;
+            free(temp_grp->next);
+        }
+        //temp_grp can be NULL after iteration
+    }
+    struct Group *newGroup;
+    newGroup = (struct Group *)malloc(sizeof(struct Group));
+    strcpy(newGroup->grp_lead,name);
+    newGroup->grp_count=tourists;
+    newGroup->date = active_date;
+    newGroup->destination = active_dest;
+    newGroup->type = 1;
+    newGroup->next = NULL;
+    newGroup->prev=NULL;
+    //
+    //
+    temp_grp = newMain->groups;
+    //
+    if (temp_grp == NULL){
+        newMain->groups = newGroup;
+    } else {
+        newMain->groups = newGroup;
+        temp_grp->prev = newGroup;
+        newGroup->next = temp_grp;
     }
     return 1;
 }
