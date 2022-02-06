@@ -23,6 +23,8 @@ Noida Tour company arranges seven day tours to Darjeeling, Leh and Ooty. The tou
 
 The first entry on the datafile is going to be an integer N which specifies maximum number of tourists allowable on any tour. Code C1 will be used to introduce a tourist spot. It will be followed by TS1 for Darjeeling, TS2 for Leh and TS3 for Ooty. This code information will remain valid for subsequent entries, till it is changed by another occurrence of C1 on the datafile. 
 
+(TS = Train Station)
+
 Code C2 will be followed by an integer indicating booking date request.  It is guaranteed that  requests will arrive in increasing order of dates. Thus, for example, if a request has been made for 14th May, subsequent requests will be only for dates after 14th.
 
 Code C3 will be followed by initials of a group leader followed by number of 
@@ -48,10 +50,9 @@ spot, followed by  lists for each of relevant dates (in increasing order).
 Print total number of tourists on that tour, followed by tourists’ data. 
 The sample output below indicates the style in which the data needs to be 
 printed.
+
 Code C9 will cause the program to exit.  Sample input and output files are given below.
 [ Hint: First develop  a prototype system which caters to a single tour for a specific date and specific destination]
-
-
 
 You need to submit a .c file of your code. It should contain at the top
  the name of  the assignment, 

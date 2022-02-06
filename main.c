@@ -23,6 +23,7 @@ struct Group {
 };
 
 //Main === collection
+//Sorted first using date and then dest
 struct Main {
     int date;
     int place;
@@ -37,6 +38,7 @@ int c2(FILE *fp, struct Date ** addr_date_head);
 int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
 int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
 int c5(FILE *fp, struct Main *main_head);
+int c8(FILE *fp, struct Main *main_head);
 
 void free_dates(struct Date *date_head){
     struct Date * temp = date_head;
@@ -65,7 +67,34 @@ void free_mains(struct Main *main_head){
     }
 };
 
-//to del when u finally deploy:
+void print_groups(struct Group *groups_list){
+    struct Group * temp = groups_list;
+    while(temp!=NULL){
+        printf("%s ",temp->grp_lead);
+        temp = temp->next;
+    }
+    printf("\n");
+};
+
+//Main struct
+//Sorted first using date and then dest
+void print_destination(int dest, struct Main *main_head){
+    struct Main *temp_main = main_head;
+    while(temp_main!=NULL){
+        if (temp_main->place == dest){
+            //print this main
+            printf("May %d: ",temp_main->date);
+            if(temp_main->t_tourists <1) printf("No trip\n");
+            else {
+                printf("%d tourists: ", temp_main->t_tourists);
+                print_groups(temp_main->groups);
+            }
+        }
+        temp_main = temp_main->next;
+    }
+};
+
+//to del when u finally deploy/prsent:
 void print_dates(struct Date *date_head){
     struct Date * temp = date_head;
     while(temp!=NULL){
@@ -74,14 +103,7 @@ void print_dates(struct Date *date_head){
     }
     printf("\n");
 };
-void print_groups(struct Group *groups_list){
-    struct Group * temp = groups_list;
-    while(temp!=NULL){
-        printf("Name: %s\tCount: %d\n",temp->grp_lead, temp->grp_count);
-        temp = temp->next;
-    }
-    printf("\n");
-};
+
 void print_main(struct Main * main_head){
     struct Main *temp = main_head;
     while(temp!=NULL){
@@ -99,7 +121,7 @@ int main(){
         printf("Unable to create tour.txt\n");
         return 0;
     }
-    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 2 C3 BB 4 C3a CC 4 C5 AA C5 AA C5 CC C9");
+    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 2 C3 BB 4 C3a CC 4 C8 TS2 C5 AA C8 TS2 C2 15 C3 DD 4 C8 C9");
     fclose(fp);
 
     fp = fopen("tour.txt", "r");
@@ -127,31 +149,36 @@ int main(){
             c=fgetc(fp);
             switch(c){
                 case '1': c1(fp, &p_active_dest);
-                printf("C1 was detected\n");
-                printf("Now dest code is %d\n",p_active_dest->place_num);
+                //printf("C1 was detected\n");
+                //printf("Now dest code is %d\n",p_active_dest->place_num);
                 break;
                 case '2': c2(fp, &date_head);
-                printf("C2 detected\n");
-                printf("Dates are: "); print_dates(date_head);
+                //printf("C2 detected\n");
+                //printf("Dates are: "); print_dates(date_head);
                 break;
                 case '3':
                 c = fgetc(fp);
                 if ('A'==c || 'a'==c) {
                     c3a(fp, N, &main_head, p_active_dest, date_head);
-                    printf("C3A was detected\n");
-                    print_main(main_head);
+                    //printf("C3A was detected\n");
+                    //print_main(main_head);
                     break;
                 }
                 c3(fp, N, &main_head, p_active_dest, date_head);
-                printf("C3 was detected\n");
-                print_main(main_head);
+                //printf("C3 was detected\n");
+                //print_main(main_head);
                 break;
                 case '5': c5(fp, main_head);
-                printf("C5 was detected\n");
-                print_main(main_head);
+                //printf("C5 was detected\n");
+                //print_main(main_head);
                 break;
-                case '8':printf("C8 detected\n");break;
-                case '9':printf("C9 detected\n");running=0;break;
+                case '8':
+                //printf("C8 detected\n");
+                c8(fp, main_head);
+                break;
+                case '9':
+                //printf("C9 detected\n");
+                running=0;break;
             };
         }
     }
@@ -548,11 +575,7 @@ int c5(FILE *fp, struct Main * main_head){
         if(finding==0) break;
         temp_main=temp_main->next;
     }
-    if (temp_grp==NULL); 
-    /*{
-        printf("no such name\n");
-        return 1;
-    }*/
+    //if (temp_grp==NULL);
     //means no such name in our database;
     //maybe we could return 0;
     //but for now lets keep it like this;
@@ -568,5 +591,27 @@ int c5(FILE *fp, struct Main * main_head){
             free(temp_grp);
         }
     }
+    return 1;
+}
+
+int c8(FILE *fp, struct Main *main_head){
+     char c;
+    do c = fgetc(fp); while(c==' ' || c=='\n');
+    if (c!='T') return 0;
+    c = fgetc(fp);
+    if (c!='S') return 0;
+    c = fgetc(fp);
+    switch(c){
+        case '1': printf("\nTS1:  Darjeeling\n");
+        print_destination(1,main_head);
+        break;
+        case '2': printf("\nTS12:  Leh\n");
+        print_destination(2,main_head);
+        break;
+        case '3': printf("\nTS3:  Ooty\n");
+        print_destination(3,main_head);
+        break;
+        default: return 0;//or u might wanna return 1
+    };
     return 1;
 }
