@@ -85,7 +85,7 @@ void print_destination(int dest, struct Main *main_head){
         if (temp_main->place == dest){
             //print this main
             printf("May %d: ",temp_main->date);
-            if(temp_main->t_tourists <1) printf("No trip\n");
+            if(temp_main->t_tourists <1 || temp_main->date >25) printf("No trip\n");
             else {
                 printf("%d tourists: ", temp_main->t_tourists);
                 print_groups(temp_main->groups);
@@ -117,7 +117,7 @@ void print_main(struct Main * main_head){
 
 int main(){
     FILE *fp;
-
+    /*
     fp = fopen("tour.txt","w");
     if (fp==NULL){
         printf("Unable to create tour.txt\n");
@@ -125,7 +125,7 @@ int main(){
     }
     fprintf(fp,"10 C1 TS2 C2 14 C3 AA 2 C3 BB 4 C3a CC 4 C5 AA C2 15 C3 DD 4 C8 TS2 C9");
     fclose(fp);
-
+    */
     fp = fopen("tour.txt", "r");
     if (fp==NULL){
         printf("Unable to open tour.txt\n");
@@ -255,7 +255,8 @@ int c2(FILE *fp, struct Date ** addr_date_head){
     //month of may has 31 days
     //u need 7 day trips
     //date could be 1 to 25
-    if(date>25 || date<1) return 0;
+    //but we will still change current date; check sample given in README.md for more info.
+    if(date>31 || date<1) return 0;
 
     int prevDate=0;
     struct Date *date_ptr = *addr_date_head;//date pointer to not change date_head
@@ -610,7 +611,7 @@ int c8(FILE *fp, struct Main *main_head){
         case '1': printf("\nTS1:  Darjeeling\n");
         print_destination(1,main_head);
         break;
-        case '2': printf("\nTS12:  Leh\n");
+        case '2': printf("\nTS2:  Leh\n");
         print_destination(2,main_head);
         break;
         case '3': printf("\nTS3:  Ooty\n");

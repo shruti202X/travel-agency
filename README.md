@@ -6,7 +6,7 @@
 - [Problem Statement](#problem-statement)
 - [My code summary](#my-code-summary)
 - Scope for Improvements
-- To Do
+- [To Do](#to-do)
 - Does it have a licence
 - References
 - Links/ Resources
@@ -96,3 +96,12 @@ May 14: 10 tourists: KK  AA    BB
 May 20: 4 tourists:      EE   
 
 ### [My Code Summary](#index)
+
+It has a function for each code
+
+### [To DO](#index)
+
+- Edit the code such that when wrong date is entered like 26 May, even then Main struct gets created
+- Check the number returned by the functions
+- Write code from starting using hint given
+- One more misunderstanding err to solve, the next date for the trip can be less than prev date if dest is changed;
