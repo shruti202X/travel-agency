@@ -2,10 +2,13 @@
 #include<stdlib.h>
 #include<string.h>
 
+//idea in my mind rn: make the date ptr like active date ptr;
+/*
 struct Date{
     int date;
     struct Date *next;
 };
+*/
 
 struct Place{
     int place_num;
@@ -18,12 +21,9 @@ struct Group {
     int destination;
     int type;//0 for normal and 1 for premium
     struct Group *next;
-    //Do we need prev?
     struct Group *prev;
 };
 
-//Main === collection
-//Sorted first using date and then dest
 struct Main {
     int date;
     int place;
@@ -34,20 +34,12 @@ struct Main {
 };
 
 int c1(FILE *fp, struct Place ** addr_p_active_dest);
-int c2(FILE *fp, struct Date ** addr_date_head);
-int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
-int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head);
+int c2(FILE *fp, int *);
+int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, int );
+int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, int );
 int c5(FILE *fp, struct Main *main_head);
 int c8(FILE *fp, struct Main *main_head);
 
-void free_dates(struct Date *date_head){
-    struct Date * temp = date_head;
-    while(date_head!=NULL){
-        temp = date_head->next;
-        free(date_head);
-        date_head = temp;
-    }
-};
 
 void free_groups(struct Group *groups_list){
     struct Group * temp = groups_list;
@@ -76,14 +68,10 @@ void print_groups(struct Group *groups_list){
     printf("\n");
 };
 
-//Main struct
-//Sorted first using date and then dest
 void print_destination(int dest, struct Main *main_head){
     struct Main *temp_main = main_head;
     while(temp_main!=NULL){
-        //printf("temp_main place here is %d\n",temp_main->place);
         if (temp_main->place == dest){
-            //print this main
             printf("May %d: ",temp_main->date);
             if(temp_main->t_tourists <1 || temp_main->date >25) printf("No trip\n");
             else {
@@ -96,36 +84,8 @@ void print_destination(int dest, struct Main *main_head){
     printf("-----------------------------------------\n");
 };
 
-//to del when u finally deploy/prsent:
-void print_dates(struct Date *date_head){
-    struct Date * temp = date_head;
-    while(temp!=NULL){
-        printf("%d ",temp->date);
-        temp = temp->next;
-    }
-    printf("\n");
-};
-
-void print_main(struct Main * main_head){
-    struct Main *temp = main_head;
-    while(temp!=NULL){
-        printf("Dest: %d\tDate: %d\tTotal: %d\n", temp->place, temp->date, temp->t_tourists);
-        print_groups(temp->groups);
-        temp=temp->next;
-    }
-};
-
 int main(){
     FILE *fp;
-    /*
-    fp = fopen("tour.txt","w");
-    if (fp==NULL){
-        printf("Unable to create tour.txt\n");
-        return 0;
-    }
-    fprintf(fp,"10 C1 TS2 C2 14 C3 AA 2 C3 BB 4 C3a CC 4 C5 AA C2 15 C3 DD 4 C8 TS2 C9");
-    fclose(fp);
-    */
     fp = fopen("tour.txt", "r");
     if (fp==NULL){
         printf("Unable to open tour.txt\n");
@@ -138,12 +98,11 @@ int main(){
         return 0;
     }
     struct Place *p_active_dest=NULL;
-    struct Date *date_head = NULL;
-    //all problem was cuz i diddnt initialize the struct to NULL
+    int * active_date = NULL;
+    //ptr cuz i want it to change inside func.
     struct Main *main_head = NULL;
     int running = 1;
     char c;
-    //you wanna put this in queue
     while(running){
         do c = fgetc(fp); while(c==' ' || c=='\n' || c==EOF);
         if(c!='C' && c!='c') running=0;
@@ -151,150 +110,69 @@ int main(){
             c=fgetc(fp);
             switch(c){
                 case '1': c1(fp, &p_active_dest);
-                //printf("C1 was detected\n");
-                //printf("Now dest code is %d\n",p_active_dest->place_num);
                 break;
-                case '2': c2(fp, &date_head);
-                //printf("C2 detected\n");
-                //printf("Dates are: "); print_dates(date_head);
+                case '2': c2(fp, active_date);
                 break;
                 case '3':
                 c = fgetc(fp);
                 if ('A'==c || 'a'==c) {
-                    c3a(fp, N, &main_head, p_active_dest, date_head);
-                    //printf("C3A was detected\n");
-                    //print_main(main_head);
+                    c3a(fp, N, &main_head, p_active_dest, *active_date);
                     break;
                 }
-                c3(fp, N, &main_head, p_active_dest, date_head);
-                //printf("C3 was detected\n");
-                //print_main(main_head);
+                c3(fp, N, &main_head, p_active_dest, *active_date);
                 break;
                 case '5': c5(fp, main_head);
-                //printf("C5 was detected\n");
-                //print_main(main_head);
                 break;
                 case '8':
-                //char ts2[5]; y did this gave err
-                //printf("C8 detected\n");
                 c8(fp, main_head);
                 break;
                 case '9':
-                //printf("C9 detected\n");
                 running=0;break;
             };
         }
-        //print_main(main_head);
     }
     fclose(fp);
     free(p_active_dest);
-    free_dates(date_head);
+    free(active_date);
     free_mains(main_head);
     return 0;
 }
-/*
-if (addr_p_active_dest==NULL){
-    * addr_p_active_dest = (struct Place *) malloc(sizeof(struct Place));
-    //malloc return pointer to the allocated memory, we typecast it to struct Place * datatype
-}
-*/
-//to do: if returned 0
 int c1(FILE *fp, struct Place ** addr_p_active_dest){
     char c;
     do c = fgetc(fp); while(c==' ' || c=='\n');
-    //you dont add while c==EOF okay, so removed in this commit
     if (c!='T') return 0;
     c = fgetc(fp);
     if (c!='S') return 0;
     c = fgetc(fp);
-    //to remember: * derference things
-    //to improve: you can choose to not allocate memory if default-case runs(not 1, 2 or 3)
     if (* addr_p_active_dest==NULL){
         * addr_p_active_dest = (struct Place *) malloc(sizeof(struct Place));
-        //malloc return pointer to the allocated memory, we typecast it to struct Place * datatype
         (*addr_p_active_dest)->place_num = 0;
     }
     switch(c){
         case '1': (*addr_p_active_dest)->place_num = 1; break;
         case '2': (*addr_p_active_dest)->place_num = 2; break;
         case '3': (*addr_p_active_dest)->place_num = 3; break;
-        //maybe we can write where/at which line its wrong
-        default: printf("TS_, _ is not 1, 2 or 3\n");
+        default: return 0;
         return 0;
     };
     return 1;
 }
 
-int c2(FILE *fp, struct Date ** addr_date_head){
-    //to improve: main prob i see: if c of another code is just after date then problem happens
+int c2(FILE *fp, int  * active_date){
     int date = 0;
     char c;
-    // for space after code C2
     do c=fgetc(fp); while(c==' ' || c=='\n');
     //'0's code is 48 => '9's code is 57
     if (c<48 || c>57) return 0; //c is not a num
-    date = (int)c - (int)'0'; //+date*10<--no need
+    date = (int)c - (int)'0';
     c = fgetc(fp);
-    //if (c==EOF || c==' ' || c=='\n') continue;//one digit date
-    //err in above line: continue statement not within a loop
-    //u might wanna check eof at different places ok
-    //to improve: u might wanna change logic what if no space and c
-    //for code is started here then it wont get to read c again
-    if (c==' ' || c=='\n');//one digit
+    if (c==' ' || c=='\n');
     else if (c>=48 && c<=57){
         date = date*10 + (int)c - (int)'0';
-        //the nxt lines are tested if only 2 digit cuz 1 digit already tested
-        /*
-        c=fgetc(fp);
-        //what if c=EOF or c; we may want to specify add space after dates
-        if (c!=' ' && c!='\n') return 0;//month cant be 3 digit;
-        //no need to test this cuz then there will be err in nxt command
-        */
     } else return 0;
-
-    //month of may has 31 days
-    //u need 7 day trips
-    //date could be 1 to 25
-    //but we will still change current date; check sample given in README.md for more info.
     if(date>31 || date<1) return 0;
-
-    int prevDate=0;
-    struct Date *date_ptr = *addr_date_head;//date pointer to not change date_head
-    /*
-    while(date_ptr!=NULL){
-        prevDate=date_ptr->data;
-        date_ptr=date_ptr->next;
-    }
-    */
-    //to improve: maybe a better way to assign prevDate
-    if(date_ptr!=NULL){
-        //here we know that date_ptr definately has next component
-        while(date_ptr->next!=NULL){
-            date_ptr = date_ptr->next;
-        }
-        prevDate = date_ptr->date;
-    }
-    //idk why anxiety but what if prevDate create scope problem
-
-    if(prevDate>date) return 0;
-    //i know there was no need for this but just to make this complete
-    //y there was no need? see question in README.md
-
     //newDate
-    struct Date *newDate;
-    newDate = (struct Date *)malloc(sizeof(struct Date));
-    newDate->date = date;
-    newDate->next = NULL;
-
-    //inserting newDate at end
-    date_ptr = *addr_date_head;
-    if (date_ptr==NULL) *addr_date_head = newDate;
-    else{
-        while(date_ptr->next!=NULL){
-            date_ptr = date_ptr->next;
-        }
-        date_ptr->next = newDate;
-    }
+    *active_date = date;
     return 1;
 }
 
@@ -308,10 +186,7 @@ struct Main * make_main(int date, int dest){
     newMain->next = NULL;
     return newMain;
 }
-
-//this triggers bi=oth making of Main and Group
-//N is total num of tourists allowed on the vehicle
-int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head){
+int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, int active_date){
     char name[5];
     char c;
     do c=fgetc(fp); while (c==' ' || c=='\n');
@@ -319,19 +194,9 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
     c=fgetc(fp);
     name[1]=c;
     name[2]='\0';
-    //to do: err if initials already present
-
     int tourists;
-    fscanf(fp,"%d",&tourists);//to do: show err
+    fscanf(fp,"%d",&tourists);
     if (tourists<1 || tourists>N) return 0;
-
-    int active_date = 0;
-    struct Date * p_temp_date = date_head;
-    if (date_head==NULL) return 0;
-    while(p_temp_date->next!=NULL){
-        p_temp_date = p_temp_date->next;
-    }
-    active_date = p_temp_date->date;
 
     if (p_active_dest == NULL) return 0;
     int active_dest = p_active_dest->place_num;
@@ -430,7 +295,7 @@ int c3(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_d
 }
 
 //ignored the fact that if all the grps in the list are already premium =>type 1 and not 0
-int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, struct Date *date_head){
+int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_dest, int active_date){
     char name[5];
     char c;
     do c=fgetc(fp); while (c==' ' || c=='\n');
@@ -443,14 +308,6 @@ int c3a(FILE *fp, int N, struct Main ** addr_main_head, struct Place * p_active_
     int tourists;
     fscanf(fp,"%d",&tourists);//to do: show err
     if (tourists<1 || tourists>N) return 0;
-
-    int active_date = 0;
-    struct Date * p_temp_date = date_head;
-    if (date_head==NULL) return 0;
-    while(p_temp_date->next!=NULL){
-        p_temp_date = p_temp_date->next;
-    }
-    active_date = p_temp_date->date;
 
     if (p_active_dest == NULL) return 0;
     int active_dest = p_active_dest->place_num;
